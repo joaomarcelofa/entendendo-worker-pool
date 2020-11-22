@@ -94,33 +94,37 @@ func getFastestURLSequential(urls []string) Result {
 }
 
 func getFastestURLWorkerPool(urls []string) Result {
-	// Declarando um waiting group para sincronizar todos os workers
+	// 1. Declarando um waiting group para sincronizar todos os workers
 	// Obs: O grupo de espera deve ter o mesmo tamanho da lista de URLs recebidas
 	var wg sync.WaitGroup
 	wg.Add(len(urls))
 
-	// Declarando a variável de exclusão mútua para garantir a integridade dos dados
-	var mux sync.Mutex
-	// Declarando a variável para armazenar o resultado mais rápido
+	// 2. Declarando a variável compatilhada para armazenar o resultado da URL mais rápida
+	// Apesar desta variável ser compartilhada, sua declaração não difere das outras, pois
+	// sua referência será enviada para o worker
 	var fastestResult Result
+	// 3. Declarando a variável de exclusão mútua para garantir a atualização correta da variável
+	// fastestResult
+	var mux sync.Mutex
 
-	// Construindo os workers para receber as urls
-	qtyWorkers := 8
+	// 4. Declarando os workers
+	qtyWorkers := 8 // Altere o número de workers aqui
 	urlCh := make(chan string, qtyWorkers)
 
-	// Criando os workers
+	// 5. Criando os workers
 	for i := 0; i < qtyWorkers; i++ {
+		// Criando uma gorrotina para cada worker
 		go getFastestURLByWorker(urlCh, &wg, &mux, &fastestResult)
 	}
 
 	// Declarando a variável para medir o tempo de execução total do programa
 	start := time.Now()
-	// Distribuindo as URLs para os workers através do channel
+	// 6. Distribuindo as URLs para os workers através do channel
 	for _, url := range urls {
 		urlCh <- url
 	}
 
-	// Ponto de espera até que o waiting group tenha sua condição satisfeita, ou seja,
+	// 7. Ponto de espera até que o waiting group tenha sua condição satisfeita, ou seja,
 	// esperar por todas as requisições retornarem
 	wg.Wait()
 	// Obtendo o tempo total de execução do programa
@@ -131,6 +135,8 @@ func getFastestURLWorkerPool(urls []string) Result {
 	return fastestResult
 }
 
+// A função getFastestURLByWorker deve receber o canal de Urls, assim como as referências do grupo de espera,
+// da variável de controle de acesso à variável compartilhada e a referência da variável compartilhada
 func getFastestURLByWorker(urlCh <-chan string, wg *sync.WaitGroup, mux *sync.Mutex, fastestResult *Result) {
 	// Visitando a URL recebida pelo channel
 	for url := range urlCh {
@@ -157,7 +163,7 @@ func getFastestURLByWorker(urlCh <-chan string, wg *sync.WaitGroup, mux *sync.Mu
 				fastestResult.TimeTooked = elapsed
 				fastestResult.URL = url
 			}
-			// Liberando o acesso das outras goroutines a variável compartilhada
+			// Liberando o acesso das outras gorrotinas a variável compartilhada
 			mux.Unlock()
 		}
 		// Marca que uma URL foi visitada
