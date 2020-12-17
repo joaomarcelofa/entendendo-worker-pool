@@ -41,18 +41,23 @@ func createSimpleHTTPClient(timeout int) *http.Client {
 	}
 }
 
-func visitURL(client *http.Client, url string) error {
+func visitURL(client *http.Client, url string) (time.Duration, error) {
+	// Monta a requisição
 	req, err := http.NewRequest("GET", url, nil)
+	// Começa a contar o tempo
+	start := time.Now()
 	// Efetua a requisição
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return time.Duration(0), err
 	}
+	// Finaliza a contagem do tempo
+	elapsed := time.Since(start)
 	// Verifica se a requisição teve sucesso de acordo com o código retornado
 	if resp.StatusCode != 200 {
-		return errors.New("Status code 200 not returned")
+		return time.Duration(0), errors.New("Status code 200 not returned")
 	}
-	return nil
+	return elapsed, nil
 }
 
 func getFastestURLSequential(urls []string) Result {
@@ -66,9 +71,7 @@ func getFastestURLSequential(urls []string) Result {
 	// Visitando todas as URLs da lista de URLs
 	for _, url := range urls {
 		// Visitando a URL medindo o tempo de resposta
-		start := time.Now()
-		err := visitURL(httpClient, url)
-		elapsed := time.Since(start)
+		elapsed, err := visitURL(httpClient, url)
 		// Verificando se houve erro com a requisição
 		if err != nil {
 			// Em caso de erro, o tempo de solicitação será desconsiderado
@@ -139,9 +142,7 @@ func getFastestURLByWorker(urlCh <-chan string, wg *sync.WaitGroup, mux *sync.Mu
 	// Visitando a URL recebida pelo channel
 	for url := range urlCh {
 		// Visitando a URL medindo o tempo de resposta
-		start := time.Now()
-		err := visitURL(httpClient, url)
-		elapsed := time.Since(start)
+		elapsed, err := visitURL(httpClient, url)
 		// Verificando se houve erro com a requisição
 		if err != nil {
 			fmt.Printf("Error at getting url %s\nError: %s\n", url, err.Error())
