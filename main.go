@@ -34,37 +34,40 @@ func main() {
 	fmt.Printf("Total time tooked on Method 2: %s\n", elapsed)
 }
 
-func visitURL(url string) error {
+func createSimpleHTTPClient(timeout int) *http.Client {
 	// Cria um cliente http
-	client := &http.Client{
-		Timeout: time.Second * 3,
+	return &http.Client{
+		Timeout: time.Second * time.Duration(timeout),
 	}
+}
+
+func visitURL(client *http.Client, url string) error {
 	req, err := http.NewRequest("GET", url, nil)
 	// Efetua a requisição
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
-
 	// Verifica se a requisição teve sucesso de acordo com o código retornado
 	if resp.StatusCode != 200 {
 		return errors.New("Status code 200 not returned")
 	}
-
 	return nil
 }
 
 func getFastestURLSequential(urls []string) Result {
-	// Declarando a variável que irá armazenar a URL com o tempo de resposta mais ráapida e
+	// Declarando a variável que irá armazenar a URL com o tempo de resposta mais rápida e
 	// o próprio tempo de resposta
 	var fastestTime time.Duration
 	fastestURL := ""
+
+	httpClient := createSimpleHTTPClient(5)
 
 	// Visitando todas as URLs da lista de URLs
 	for _, url := range urls {
 		// Visitando a URL medindo o tempo de resposta
 		start := time.Now()
-		err := visitURL(url)
+		err := visitURL(httpClient, url)
 		elapsed := time.Since(start)
 		// Verificando se houve erro com a requisição
 		if err != nil {
@@ -132,11 +135,12 @@ func getFastestURLWorkerPool(urls []string) Result {
 // A função getFastestURLByWorker deve receber o canal de Urls, assim como as referências do grupo de espera,
 // da variável de controle de acesso à variável compartilhada e a referência da variável compartilhada
 func getFastestURLByWorker(urlCh <-chan string, wg *sync.WaitGroup, mux *sync.Mutex, fastestResult *Result) {
+	httpClient := createSimpleHTTPClient(5)
 	// Visitando a URL recebida pelo channel
 	for url := range urlCh {
 		// Visitando a URL medindo o tempo de resposta
 		start := time.Now()
-		err := visitURL(url)
+		err := visitURL(httpClient, url)
 		elapsed := time.Since(start)
 		// Verificando se houve erro com a requisição
 		if err != nil {
