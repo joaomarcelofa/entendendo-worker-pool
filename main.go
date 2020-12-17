@@ -18,14 +18,20 @@ type Result struct {
 
 func main() {
 	fmt.Println("Method 1 - Sequential")
+	start := time.Now()
 	result := getFastestURLSequential(urls.List)
-	fmt.Printf("Fastest URL: %s - %s", result.URL, result.TimeTooked)
+	elapsed := time.Since(start)
+	fmt.Printf("Fastest URL: %s - %s\n", result.URL, result.TimeTooked)
+	fmt.Printf("Total time tooked on Method 1: %s\n", elapsed)
 
 	fmt.Printf("\n\n\n")
 
 	fmt.Println("Method 2 - Worker pool")
+	start = time.Now()
 	result = getFastestURLWorkerPool(urls.List)
-	fmt.Printf("Fastest URL: %s - %s", result.URL, result.TimeTooked)
+	elapsed = time.Since(start)
+	fmt.Printf("Fastest URL: %s - %s\n", result.URL, result.TimeTooked)
+	fmt.Printf("Total time tooked on Method 2: %s\n", elapsed)
 }
 
 func visitURL(url string) error {
@@ -49,9 +55,9 @@ func visitURL(url string) error {
 }
 
 func getFastestURLSequential(urls []string) Result {
-	// Declarando as variáveis que irão armazenar o tempo da requisição mais rápida, o tempo total de execução
-	// e qual foi a URL que obteve a menor marca de tempo
-	var fastestTime, totalTime time.Duration
+	// Declarando a variável que irá armazenar a URL com o tempo de resposta mais ráapida e
+	// o próprio tempo de resposta
+	var fastestTime time.Duration
 	fastestURL := ""
 
 	// Visitando todas as URLs da lista de URLs
@@ -64,8 +70,6 @@ func getFastestURLSequential(urls []string) Result {
 		if err != nil {
 			// Em caso de erro, o tempo de solicitação será desconsiderado
 			fmt.Printf("Error at getting url %s\nError: %s\n", url, err.Error())
-			// Somando o tempo decorrido da requisição ao total de tempo de execução
-			totalTime += elapsed
 			continue
 		}
 		fmt.Printf("Visited %s - Took: %s\n", url, elapsed)
@@ -81,11 +85,7 @@ func getFastestURLSequential(urls []string) Result {
 			fastestTime = elapsed
 			fastestURL = url
 		}
-		// Somando o tempo decorrido da requisição ao total de tempo de execução
-		totalTime += elapsed
 	}
-
-	fmt.Printf("TOTAL TIME: %s\n", totalTime)
 
 	return Result{
 		URL:        fastestURL,
@@ -117,8 +117,6 @@ func getFastestURLWorkerPool(urls []string) Result {
 		go getFastestURLByWorker(urlCh, &wg, &mux, &fastestResult)
 	}
 
-	// Declarando a variável para medir o tempo de execução total do programa
-	start := time.Now()
 	// 6. Distribuindo as URLs para os workers através do channel
 	for _, url := range urls {
 		urlCh <- url
@@ -127,10 +125,6 @@ func getFastestURLWorkerPool(urls []string) Result {
 	// 7. Ponto de espera até que o waiting group tenha sua condição satisfeita, ou seja,
 	// esperar por todas as requisições retornarem
 	wg.Wait()
-	// Obtendo o tempo total de execução do programa
-	totalTime := time.Since(start)
-
-	fmt.Printf("TOTAL TIME: %s\n", totalTime)
 
 	return fastestResult
 }
