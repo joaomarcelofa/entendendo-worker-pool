@@ -119,7 +119,7 @@ func getFastestURLWorkerPool(urls []string) Result {
 
 	// 5. Criando os workers
 	for i := 0; i < qtyWorkers; i++ {
-		// Criando uma gorrotina para cada worker
+		// Criando uma goroutine para cada worker
 		go getFastestURLByWorker(urlCh, &wg, &mux, &fastestResult)
 	}
 
@@ -162,7 +162,7 @@ func getFastestURLByWorker(urlCh <-chan string, wg *sync.WaitGroup, mux *sync.Mu
 				fastestResult.TimeTooked = elapsed
 				fastestResult.URL = url
 			}
-			// Liberando o acesso das outras gorrotinas a variável compartilhada
+			// Liberando o acesso das outras goroutines a variável compartilhada
 			mux.Unlock()
 		}
 		// Marca que uma URL foi visitada
